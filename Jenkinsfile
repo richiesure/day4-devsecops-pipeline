@@ -4,6 +4,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = "devsecops-app"
         DOCKER_TAG = "${BUILD_NUMBER}"
+        SONAR_SCANNER_HOME = "/opt/sonar-scanner"
     }
     
     stages {
@@ -36,11 +37,18 @@ pipeline {
         stage('Code Quality Analysis') {
             steps {
                 echo '🔍 Running SonarQube analysis...'
-                script {
-                    def scannerHome = tool 'SonarScanner'
-                    withSonarQubeEnv('SonarQube') {
-                        sh "${scannerHome}/bin/sonar-scanner"
-                    }
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
+                          -Dsonar.projectKey=devsecops-pipeline \
+                          -Dsonar.projectName="DevSecOps Pipeline" \
+                          -Dsonar.projectVersion=1.0 \
+                          -Dsonar.sources=app.py \
+                          -Dsonar.tests=tests/ \
+                          -Dsonar.language=py \
+                          -Dsonar.python.version=3.11 \
+                          -Dsonar.python.coverage.reportPaths=coverage.xml
+                    '''
                 }
             }
         }
@@ -129,6 +137,7 @@ pipeline {
             echo '✅     DEVSECOPS PIPELINE - COMPLETE SUCCESS!   '
             echo '✅ ================================================'
             echo '✅ Tests: PASSED | Build: SUCCESS | Deploy: LIVE'
+            echo '✅ Code Quality: ANALYZED | Security: SCANNED   '
             echo '✅ ================================================'
             echo '✅ Application:  http://13.40.17.105:5000'
             echo '✅ Jenkins:      http://13.40.17.105:8080'
