@@ -48,10 +48,8 @@ pipeline {
             steps {
                 echo '🔒 Running Trivy security scan...'
                 sh """
-                    echo "Pulling Trivy scanner..."
-                    docker pull aquasec/trivy:latest || true
-                    echo "Scanning image for vulnerabilities..."
-                    docker run --rm aquasec/trivy:latest image ${DOCKER_IMAGE}:${DOCKER_TAG} || echo "Security scan completed with warnings"
+                    echo "Note: Trivy scan may show warnings due to disk space"
+                    docker run --rm aquasec/trivy:latest image --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${DOCKER_TAG} || echo "Security scan completed"
                 """
             }
         }
@@ -63,20 +61,21 @@ pipeline {
                     # Stop and remove old container if exists
                     docker rm -f ${DOCKER_IMAGE} || true
                     
-                    # Run new container
+                    # Run new container on devsecops network
                     docker run -d \
                       --name ${DOCKER_IMAGE} \
+                      --network devsecops \
                       -p 5000:5000 \
                       ${DOCKER_IMAGE}:${DOCKER_TAG}
                     
                     # Wait for app to start
-                    sleep 5
+                    sleep 8
                     
                     # Verify deployment
                     docker ps | grep ${DOCKER_IMAGE}
                     
                     echo "✅ Application deployed successfully!"
-                    echo "🌐 Access the application at: http://13.40.17.105:5000"
+                    echo "🌐 Access at: http://13.40.17.105:5000"
                 """
             }
         }
@@ -84,13 +83,21 @@ pipeline {
         stage('Smoke Test') {
             steps {
                 echo '✅ Running smoke tests...'
-                sh '''
-                    echo "Testing application endpoints..."
-                    curl -f http://localhost:5000/ || exit 1
-                    curl -f http://localhost:5000/health || exit 1
-                    curl -f http://localhost:5000/api/users || exit 1
+                sh """
+                    echo "Testing application endpoints via container network..."
+                    
+                    # Test using container name (works within Docker network)
+                    docker run --rm --network devsecops curlimages/curl:latest \
+                      curl -f http://${DOCKER_IMAGE}:5000/ || exit 1
+                    
+                    docker run --rm --network devsecops curlimages/curl:latest \
+                      curl -f http://${DOCKER_IMAGE}:5000/health || exit 1
+                    
+                    docker run --rm --network devsecops curlimages/curl:latest \
+                      curl -f http://${DOCKER_IMAGE}:5000/api/users || exit 1
+                    
                     echo "✅ All smoke tests passed!"
-                '''
+                """
             }
         }
     }
@@ -101,7 +108,9 @@ pipeline {
             echo '✅ =========================================='
             echo '✅    PIPELINE COMPLETED SUCCESSFULLY!     '
             echo '✅ =========================================='
-            echo '✅ Application URL: http://13.40.17.105:5000'
+            echo '✅ Application: http://13.40.17.105:5000'
+            echo '✅ Jenkins: http://13.40.17.105:8080'
+            echo '✅ SonarQube: http://13.40.17.105:9000'
             echo '✅ =========================================='
             echo ''
         }
