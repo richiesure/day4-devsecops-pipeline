@@ -19,7 +19,8 @@ pipeline {
             steps {
                 echo 'Installing Python dependencies...'
                 sh '''
-                    python3 -m pip install --user -r requirements.txt
+                    # Use --break-system-packages for Python 3.13+
+                    python3 -m pip install --break-system-packages -r requirements.txt
                 '''
             }
         }
@@ -28,7 +29,7 @@ pipeline {
             steps {
                 echo 'Running unit tests...'
                 sh '''
-                    python3 -m pytest tests/ -v --junitxml=test-results.xml --cov=. --cov-report=xml --cov-report=html || true
+                    python3 -m pytest tests/ -v --junitxml=test-results.xml --cov=. --cov-report=xml --cov-report=html
                 '''
             }
             post {
@@ -58,7 +59,7 @@ pipeline {
                         try {
                             waitForQualityGate abortPipeline: false
                         } catch (Exception e) {
-                            echo "Quality Gate failed but continuing..."
+                            echo "Quality Gate status check failed, but continuing..."
                         }
                     }
                 }
@@ -103,7 +104,7 @@ pipeline {
             echo '❌ Pipeline failed!'
         }
         always {
-            echo 'Cleaning up...'
+            echo 'Pipeline execution completed.'
         }
     }
 }
