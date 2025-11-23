@@ -53,5 +53,10 @@ docker run -p 5000:5000 devsecops-app
 - `GET /health` - Health check
 - `GET /api/users` - Get user list
 
+  <img width="1835" height="912" alt="image" src="https://github.com/user-attachments/assets/3a0a46f2-e68b-4b21-a182-9dfa78c93436" />
+<img width="1807" height="918" alt="image" src="https://github.com/user-attachments/assets/a50d4ab5-1eaa-4f08-a0af-4235810d08d9" />
+
+
+
 ## Author
-DevOps Engineer Training Project
+DevOps Engineer Efemena
